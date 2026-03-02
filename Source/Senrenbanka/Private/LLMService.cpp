@@ -10,7 +10,7 @@
 ULLMService::ULLMService()
 {
 	ApiBaseUrl = TEXT("http://127.0.0.1:1234/v1/chat/completions");
-	ModelName = TEXT("gpt-4o-mini");
+	ModelName = TEXT("qwen2.5-7b");
 	ApiKey = TEXT("");
 }
 

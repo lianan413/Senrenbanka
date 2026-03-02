@@ -4,13 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "InputActionValue.h"
 #include "Logging/LogMacros.h"
 #include "SenrenbankaCharacter.generated.h"
 
+class UInputMappingContext;
+class UInputAction;
 class USpringArmComponent;
 class UCameraComponent;
-class UInputAction;
-struct FInputActionValue;
+class USphereComponent;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -18,8 +20,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
  *  A simple player-controllable third person character
  *  Implements a controllable orbiting camera
  */
-UCLASS(abstract)
-class ASenrenbankaCharacter : public ACharacter
+UCLASS()
+class SENRENBANKA_API ASenrenbankaCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
@@ -30,42 +32,56 @@ class ASenrenbankaCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
-	
+
+	/** 交互检测球体（原神式 E 交互） */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interact", meta = (AllowPrivateAccess = "true"))
+	USphereComponent* InteractSphere;
+
+	UPROPERTY()
+	TArray<TWeakObjectPtr<AActor>> NearbyInteractables;
+
+	UPROPERTY()
+	int32 CurrentInteractIndex;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Interact", meta = (AllowPrivateAccess = "true"))
+	float InteractRadius;
+
 protected:
 
-	/** Jump Input Action */
-	UPROPERTY(EditAnywhere, Category="Input")
-	UInputAction* JumpAction;
+	/** Enhanced Input: 默认映射上下文（如 IMC_Default） */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputMappingContext> DefaultMappingContext;
 
-	/** Move Input Action */
-	UPROPERTY(EditAnywhere, Category="Input")
-	UInputAction* MoveAction;
+	/** 移动 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> MoveAction;
 
-	/** Look Input Action */
-	UPROPERTY(EditAnywhere, Category="Input")
-	UInputAction* LookAction;
+	/** 视角 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> LookAction;
 
-	/** Mouse Look Input Action */
-	UPROPERTY(EditAnywhere, Category="Input")
-	UInputAction* MouseLookAction;
+	/** 跳跃 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> JumpAction;
+
+	/** Mouse Look（手柄为 LookAction，鼠标可用此） */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UInputAction> MouseLookAction;
+
+	/** 处理移动 */
+	void Move(const FInputActionValue& Value);
+	/** 处理视角 */
+	void Look(const FInputActionValue& Value);
+
+	virtual void BeginPlay() override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 public:
 
 	/** Constructor */
-	ASenrenbankaCharacter();	
+	ASenrenbankaCharacter();
 
 protected:
-
-	/** Initialize input action bindings */
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-protected:
-
-	/** Called for movement input */
-	void Move(const FInputActionValue& Value);
-
-	/** Called for looking input */
-	void Look(const FInputActionValue& Value);
 
 public:
 
@@ -84,6 +100,34 @@ public:
 	/** Handles jump pressed inputs from either controls or UI interfaces */
 	UFUNCTION(BlueprintCallable, Category="Input")
 	virtual void DoJumpEnd();
+
+	/** 当前可交互目标（用于 UI 与 E 键） */
+	UFUNCTION(BlueprintPure, Category = "Interact")
+	AActor* GetCurrentInteractTarget() const;
+
+	UFUNCTION(BlueprintPure, Category = "Interact")
+	FText GetCurrentInteractText() const;
+
+	/** Q 切换目标 */
+	UFUNCTION(BlueprintCallable, Category = "Interact")
+	void CycleInteractTarget();
+
+	/** E 与当前目标交互 */
+	UFUNCTION(BlueprintCallable, Category = "Interact")
+	void TryInteract(APlayerController* InstigatorPC);
+
+	UFUNCTION()
+	void OnInteractSphereBeginOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep,
+		const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnInteractSphereEndOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
+		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+private:
+	void RebuildCurrentIndexAfterListChanged();
+	void RemoveInvalidEntries();
 
 public:
 
