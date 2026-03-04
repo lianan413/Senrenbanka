@@ -6,8 +6,8 @@
 ASenrenbankaGameState::ASenrenbankaGameState()
 {
 	DayOfWeekIndex = 0;   // 周一
-	CurrentHour = 8;     // 早上 8 点
-	CurrentMinute = 0;
+	CurrentHour = 11;     // 早上 8 点
+	CurrentMinute = 50;
 	MinutesPerTick = 10;
 	SecondsPerGameHour = 10.f;  // 每隔多少秒调用一次 AdvanceTimeOfDay
 	CurrentTimeOfDay = 8.f;

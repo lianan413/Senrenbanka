@@ -10,6 +10,7 @@ class UInputAction;
 class UInputMappingContext;
 class UUserWidget;
 class ASenrenbankaCharacter;
+class USenrenbankaDialogueComponent;
 
 /**
  *  Basic PlayerController class for a third person game
@@ -44,6 +45,9 @@ protected:
 	/** If true, the player will use UMG touch controls even if not playing on mobile platforms */
 	UPROPERTY(EditAnywhere, Config, Category = "Input|Touch Controls")
 	bool bForceTouchControls = false;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "LLM", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USenrenbankaDialogueComponent> DialogueComponent;
 
 	/** E 交互 */
 	UPROPERTY(EditDefaultsOnly, Category = "Input")

@@ -2,6 +2,7 @@
 
 #include "SenrenbankaPlayerController.h"
 #include "SenrenbankaCharacter.h"
+#include "SenrenbankaDialogueComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
 #include "Engine/LocalPlayer.h"
@@ -14,6 +15,8 @@
 
 ASenrenbankaPlayerController::ASenrenbankaPlayerController()
 {
+	DialogueComponent = CreateDefaultSubobject<USenrenbankaDialogueComponent>(TEXT("DialogueComponent"));
+
 	// 从内容加载默认 IMC，保证 C++ GameMode 下移动与转视角可用
 	static ConstructorHelpers::FObjectFinder<UInputMappingContext> IMC_DefaultRef(TEXT("/Game/Input/IMC_Default.IMC_Default"));
 	if (IMC_DefaultRef.Succeeded())
