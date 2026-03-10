@@ -262,3 +262,14 @@ void ASenrenbankaCharacter::TryInteract(APlayerController* InstigatorPC)
 		IInteractableInterface::Execute_Interact(Target, InstigatorPC);
 	}
 }
+
+FSenrenbankaCombatSaveData ASenrenbankaCharacter::GetCombatSaveDataForSave_Implementation() const
+{
+	// 默认返回一份空的战斗存档数据，具体数值由蓝图子类覆盖
+	return FSenrenbankaCombatSaveData();
+}
+
+void ASenrenbankaCharacter::ApplyCombatSaveDataFromSave_Implementation(const FSenrenbankaCombatSaveData& InData)
+{
+	// 默认无操作，具体恢复逻辑由蓝图子类实现
+}

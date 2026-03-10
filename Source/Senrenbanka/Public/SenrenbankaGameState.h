@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameStateBase.h"
+#include "SenrenbankaSaveTypes.h"
 #include "SenrenbankaGameState.generated.h"
 
 UENUM(BlueprintType)
@@ -14,6 +15,7 @@ enum class ETimeOfDaySegment : uint8
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTimeSegmentChanged, ETimeOfDaySegment, NewSegment);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDailyEnemyRefresh, int32, RefreshDayIndex);
 
 UCLASS()
 class SENRENBANKA_API ASenrenbankaGameState : public AGameStateBase
@@ -28,6 +30,10 @@ public:
 	/** 0..6 对应 周一..周日 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "TimeOfDay")
 	int32 DayOfWeekIndex;
+
+	/** 全局第几天（从 0 开始计数） */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "TimeOfDay")
+	int32 DayIndex;
 
 	/** 0..23 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "TimeOfDay")
@@ -55,6 +61,9 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "TimeOfDay")
 	FOnTimeSegmentChanged OnTimeSegmentChanged;
 
+	UPROPERTY(BlueprintAssignable, Category = "Time")
+	FOnDailyEnemyRefresh OnDailyEnemyRefresh;
+
 	UFUNCTION(BlueprintCallable, Category = "TimeOfDay")
 	ETimeOfDaySegment GetCurrentTimeSegment() const;
 
@@ -65,6 +74,25 @@ public:
 	/** 返回：早上 / 中午 / 晚上 / 凌晨 */
 	UFUNCTION(BlueprintPure, Category = "TimeOfDay")
 	FText GetSegmentDisplayText() const;
+
+	// Sky 时间（用于 BP_StylizedSky）：0~1440 秒
+	UFUNCTION(BlueprintPure, Category = "Time")
+	float GetSkyTimeSeconds() const;
+
+	// Sky 时间归一化：0~1
+	UFUNCTION(BlueprintPure, Category = "Time")
+	float GetSkyTimeNormalized() const;
+
+	// 手动推进游戏时间（用于睡觉跳时等）
+	UFUNCTION(BlueprintCallable, Category = "Time")
+	void AdvanceGameTimeByMinutes(int32 MinutesToAdvance);
+
+	// 存档用时间读取/应用接口
+	UFUNCTION(BlueprintCallable, Category = "Save")
+	FSenrenbankaTimeSaveData GetTimeSaveData() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Save")
+	void ApplyTimeSaveData(const FSenrenbankaTimeSaveData& InData);
 
 	void AdvanceTimeOfDay();
 

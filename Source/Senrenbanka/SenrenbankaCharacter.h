@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
 #include "Logging/LogMacros.h"
+#include "SenrenbankaSaveTypes.h"
 #include "SenrenbankaCharacter.generated.h"
 
 class UInputMappingContext;
@@ -136,5 +137,14 @@ public:
 
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+
+	// 战斗属性存档桥接接口（默认实现交由蓝图覆盖）
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Save")
+	FSenrenbankaCombatSaveData GetCombatSaveDataForSave() const;
+	virtual FSenrenbankaCombatSaveData GetCombatSaveDataForSave_Implementation() const;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Save")
+	void ApplyCombatSaveDataFromSave(const FSenrenbankaCombatSaveData& InData);
+	virtual void ApplyCombatSaveDataFromSave_Implementation(const FSenrenbankaCombatSaveData& InData);
 };
 

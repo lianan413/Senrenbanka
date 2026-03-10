@@ -6,8 +6,9 @@
 ASenrenbankaGameState::ASenrenbankaGameState()
 {
 	DayOfWeekIndex = 0;   // 周一
-	CurrentHour = 11;     // 早上 8 点
-	CurrentMinute = 50;
+	DayIndex = 0;
+	CurrentHour = 8;      // 早上 8 点
+	CurrentMinute = 0;
 	MinutesPerTick = 10;
 	SecondsPerGameHour = 10.f;  // 每隔多少秒调用一次 AdvanceTimeOfDay
 	CurrentTimeOfDay = 8.f;
@@ -42,6 +43,7 @@ void ASenrenbankaGameState::AdvanceTimeOfDay()
 	if (CurrentHour >= 24)
 	{
 		CurrentHour -= 24;
+		DayIndex += 1;
 		DayOfWeekIndex = (DayOfWeekIndex + 1) % 7;
 	}
 
@@ -100,5 +102,124 @@ FText ASenrenbankaGameState::GetSegmentDisplayText() const
 	case ETimeOfDaySegment::Night:   return FText::FromString(TEXT("凌晨"));
 	default:                         return FText::FromString(TEXT("凌晨"));
 	}
+}
+
+float ASenrenbankaGameState::GetSkyTimeSeconds() const
+{
+	// 现实 1 秒 = 游戏 1 分钟
+	// 游戏一天 24 小时 = 1440 分钟 = 1440 秒
+	const float MinutesTotal = static_cast<float>(CurrentHour * 60 + CurrentMinute);
+	return FMath::Clamp(MinutesTotal, 0.0f, 1440.0f);
+}
+
+float ASenrenbankaGameState::GetSkyTimeNormalized() const
+{
+	return GetSkyTimeSeconds() / 1440.0f;
+}
+
+FSenrenbankaTimeSaveData ASenrenbankaGameState::GetTimeSaveData() const
+{
+	FSenrenbankaTimeSaveData Data;
+	Data.DayIndex = DayIndex;
+	Data.WeekDayIndex = DayOfWeekIndex;
+	Data.Hour = CurrentHour;
+	Data.Minute = CurrentMinute;
+
+	UE_LOG(LogTemp, Log, TEXT("GameState::GetTimeSaveData -> DayIndex=%d WeekDayIndex=%d Time=%02d:%02d"),
+		Data.DayIndex, Data.WeekDayIndex, Data.Hour, Data.Minute);
+
+	return Data;
+}
+
+void ASenrenbankaGameState::ApplyTimeSaveData(const FSenrenbankaTimeSaveData& InData)
+{
+	UE_LOG(LogTemp, Log, TEXT("GameState::ApplyTimeSaveData <- DayIndex=%d WeekDayIndex=%d Time=%02d:%02d"),
+		InData.DayIndex, InData.WeekDayIndex, InData.Hour, InData.Minute);
+
+	const ETimeOfDaySegment OldSegment = CurrentSegment;
+
+	DayIndex = InData.DayIndex;
+	DayOfWeekIndex = InData.WeekDayIndex;
+	CurrentHour = InData.Hour;
+	CurrentMinute = InData.Minute;
+
+	CurrentTimeOfDay = CurrentHour + CurrentMinute / 60.f;
+
+	RecalculateSegmentFromTime();
+
+	if (CurrentSegment != OldSegment)
+	{
+		OnTimeSegmentChanged.Broadcast(CurrentSegment);
+	}
+}
+
+void ASenrenbankaGameState::AdvanceGameTimeByMinutes(int32 MinutesToAdvance)
+{
+	if (MinutesToAdvance == 0)
+	{
+		return;
+	}
+
+	// 计算推进前的全局分钟数
+	const int32 OldDayIndex = DayIndex;
+	const int32 OldHour = CurrentHour;
+	const int32 OldMinute = CurrentMinute;
+
+	const int32 OldTotalMinutes = OldDayIndex * 1440 + OldHour * 60 + OldMinute;
+	const int32 NewTotalMinutes = OldTotalMinutes + MinutesToAdvance;
+
+	UE_LOG(LogTemp, Log, TEXT("GameState::AdvanceGameTimeByMinutes OldDay=%d OldTime=%02d:%02d NewTotalMinutes=%d (+%d)"),
+		OldDayIndex, OldHour, OldMinute, NewTotalMinutes, MinutesToAdvance);
+
+	// 检查是否跨过任何每天 4:00（240 分钟）节点
+	const int32 FirstDayToCheck = OldTotalMinutes / 1440;
+	const int32 LastDayToCheck = NewTotalMinutes / 1440;
+
+	for (int32 Day = FirstDayToCheck; Day <= LastDayToCheck; ++Day)
+	{
+		const int32 ThresholdMinutes = Day * 1440 + 240; // 每天 4:00
+		if (ThresholdMinutes > OldTotalMinutes && ThresholdMinutes <= NewTotalMinutes)
+		{
+			UE_LOG(LogTemp, Log, TEXT("GameState::AdvanceGameTimeByMinutes Daily enemy refresh triggered for day %d"), Day);
+			OnDailyEnemyRefresh.Broadcast(Day);
+		}
+	}
+
+	// 更新 DayIndex / Hour / Minute
+	const int32 NewDayIndex = NewTotalMinutes / 1440;
+	const int32 MinutesWithinDay = NewTotalMinutes - NewDayIndex * 1440;
+	const int32 NewHour = MinutesWithinDay / 60;
+	const int32 NewMinute = MinutesWithinDay % 60;
+
+	const int32 DeltaDays = NewDayIndex - OldDayIndex;
+
+	DayIndex = NewDayIndex;
+
+	// WeekDayIndex 按 7 天循环
+	if (DeltaDays != 0)
+	{
+		int32 NewWeekDay = DayOfWeekIndex + DeltaDays;
+		NewWeekDay %= 7;
+		if (NewWeekDay < 0)
+		{
+			NewWeekDay += 7;
+		}
+		DayOfWeekIndex = NewWeekDay;
+	}
+
+	CurrentHour = NewHour;
+	CurrentMinute = NewMinute;
+	CurrentTimeOfDay = CurrentHour + CurrentMinute / 60.f;
+
+	const ETimeOfDaySegment OldSegment = CurrentSegment;
+	RecalculateSegmentFromTime();
+
+	if (CurrentSegment != OldSegment)
+	{
+		OnTimeSegmentChanged.Broadcast(CurrentSegment);
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("GameState::AdvanceGameTimeByMinutes NewDay=%d NewWeekDay=%d NewTime=%02d:%02d"),
+		DayIndex, DayOfWeekIndex, CurrentHour, CurrentMinute);
 }
 

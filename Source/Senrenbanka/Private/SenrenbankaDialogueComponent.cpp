@@ -18,6 +18,7 @@ USenrenbankaDialogueComponent::USenrenbankaDialogueComponent()
 	bAutoActivate = true;
 
 	MaxTotalChars = 6000;
+	LastAffinityDelta = 0.f;
 
 	if (ApiUrl.IsEmpty())
 	{
@@ -38,7 +39,13 @@ USenrenbankaDialogueComponent::USenrenbankaDialogueComponent()
 void USenrenbankaDialogueComponent::ResetConversation()
 {
 	MessageHistory.Empty();
+	LastAffinityDelta = 0.f;
 	UE_LOG(LogTemp, Log, TEXT("DialogueComponent: Conversation reset."));
+}
+
+float USenrenbankaDialogueComponent::GetLastAffinityDelta() const
+{
+	return LastAffinityDelta;
 }
 
 void USenrenbankaDialogueComponent::RequestLLMResponse(const FString& UserText, const FString& NPCName)
@@ -62,6 +69,7 @@ void USenrenbankaDialogueComponent::RequestLLMResponse(const FString& UserText, 
 			TEXT("%s\n当前对话对象：%s。请始终保持该角色的第一人称语气，用自然中文回答。"),
 			*SystemPrompt,
 			*NPCName);
+		SystemMsg.Content += TEXT("\n每次回答时，请先输出自然的中文正文。\n然后在最后单独输出一行，格式必须严格为：\n[AFFINITY_DELTA:n]\n其中 n 必须是一个整数，范围只能是 -5 到 5。\n不要对这个标签做解释，不要输出多余括号或中文说明。");
 		MessageHistory.Add(SystemMsg);
 	}
 
@@ -206,13 +214,61 @@ void USenrenbankaDialogueComponent::HandleHttpRequestCompleted(bool bWasSuccessf
 		return;
 	}
 
-	// 将模型回复写入历史
+	// 解析好感度标签并清理正文
+	FString CleanReply;
+	float ParsedAffinityDelta = 0.f;
+	ExtractAffinityDeltaAndCleanReply(Reply, CleanReply, ParsedAffinityDelta);
+	LastAffinityDelta = ParsedAffinityDelta;
+
+	UE_LOG(LogTemp, Log, TEXT("DialogueComponent::HandleHttpRequestCompleted RawReply=\"%s\" CleanReply=\"%s\" AffinityDelta=%.2f"),
+		*Reply, *CleanReply, LastAffinityDelta);
+
+	// 将模型回复写入历史（使用清理后的文本）
 	FLLMChatMessage AssistantMsg;
 	AssistantMsg.Role = TEXT("assistant");
-	AssistantMsg.Content = Reply;
+	AssistantMsg.Content = CleanReply;
 	MessageHistory.Add(AssistantMsg);
 
-	OnLLMResponse.Broadcast(Reply);
+	OnLLMResponse.Broadcast(CleanReply);
+}
+
+bool USenrenbankaDialogueComponent::ExtractAffinityDeltaAndCleanReply(const FString& RawReply, FString& OutCleanReply, float& OutAffinityDelta) const
+{
+	OutCleanReply = RawReply;
+	OutAffinityDelta = 0.f;
+
+	const FString TagPrefix = TEXT("[AFFINITY_DELTA:");
+
+	int32 StartIndex = RawReply.Find(TagPrefix, ESearchCase::IgnoreCase, ESearchDir::FromStart);
+	if (StartIndex == INDEX_NONE)
+	{
+		return false;
+	}
+
+	int32 SearchFrom = StartIndex + TagPrefix.Len();
+	int32 EndIndex = RawReply.Find(TEXT("]"), ESearchCase::IgnoreCase, ESearchDir::FromStart, SearchFrom);
+	if (EndIndex == INDEX_NONE || EndIndex <= SearchFrom)
+	{
+		return false;
+	}
+
+	const int32 ValueLen = EndIndex - SearchFrom;
+	FString NumberStr = RawReply.Mid(SearchFrom, ValueLen).TrimStartAndEnd();
+
+	float ParsedValue = 0.f;
+	if (!LexTryParseString(ParsedValue, *NumberStr))
+	{
+		return false;
+	}
+
+	OutAffinityDelta = FMath::Clamp(ParsedValue, -5.f, 5.f);
+
+	// 移除标签部分
+	FString Clean = RawReply.Left(StartIndex) + RawReply.Mid(EndIndex + 1);
+	Clean.TrimStartAndEndInline();
+	OutCleanReply = Clean;
+
+	return true;
 }
 
 
