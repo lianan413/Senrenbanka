@@ -1,8 +1,5 @@
-# Senrenbanka
-
-Developed with Unreal Engine 5
-
 # 基于《千恋＊万花》角色设定的 AI 小镇恋语 RPG 原型项目
+Developed with Unreal Engine 5
 
 > 一个以 **Unreal Engine 5.7** 为核心、围绕 **AI 驱动 NPC 交互 + 小镇日常模拟 + 战斗成长闭环** 构建的二创原型项目。
 > 本项目重点展示了我在 **游戏客户端架构设计、核心系统开发、LLM 交互链路接入、状态持久化与多模块联调** 方面的完整实践能力。
