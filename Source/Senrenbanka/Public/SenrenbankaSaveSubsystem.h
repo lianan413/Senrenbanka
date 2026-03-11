@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "SenrenbankaSaveTypes.h"
+#include "SenrenbankaItemTypes.h"
 #include "SenrenbankaSaveSubsystem.generated.h"
 
 class USenrenbankaSaveGame;
@@ -81,6 +82,19 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Save")
 	FString GetSavedMapName() const;
+
+	// 正式背包数组 + 金钱接口
+	UFUNCTION(BlueprintCallable, Category = "Save|Inventory")
+	void SetSavedInventoryItems(const TArray<FSenrenbankaInventoryEntry>& InItems);
+
+	UFUNCTION(BlueprintCallable, Category = "Save|Inventory")
+	TArray<FSenrenbankaInventoryEntry> GetSavedInventoryItems() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Save|Money")
+	void SetSavedMoney(int32 InMoney);
+
+	UFUNCTION(BlueprintCallable, Category = "Save|Money")
+	int32 GetSavedMoney() const;
 
 protected:
 	void EnsureCurrentSaveObject();

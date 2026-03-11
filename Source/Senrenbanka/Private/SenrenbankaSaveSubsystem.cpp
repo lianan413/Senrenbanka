@@ -50,6 +50,9 @@ void USenrenbankaSaveSubsystem::CreateNewSave()
 		CurrentSaveObject->PlayerTransform = FTransform::Identity;
 		CurrentSaveObject->PlayerCurrentHP = 100.f;
 		CurrentSaveObject->TimeData = FSenrenbankaTimeSaveData();
+		CurrentSaveObject->CombatData = FSenrenbankaCombatSaveData();
+		CurrentSaveObject->InventoryItems.Empty();
+		CurrentSaveObject->SavedMoney = 0;
 
 		CurrentSaveObject->FloatData.Empty();
 		CurrentSaveObject->IntData.Empty();
@@ -146,6 +149,13 @@ bool USenrenbankaSaveSubsystem::SaveCurrentGame()
 				"HP=%.1f BaseAtk=%.1f BaseCrit=%.2f BaseMaxHP=%.1f FinalAtk=%.1f FinalCrit=%.2f FinalMaxHP=%.1f"),
 				C.CurrentHP, C.BaseAttack, C.BaseCritRate, C.BaseMaxHP,
 				C.FinalAttack, C.FinalCritRate, C.FinalMaxHP);
+
+			// 任务进度：清剿魔狼
+			CurrentSaveObject->SavedWolfKillCount = SRCharacter->GetWolfKillCountForSave();
+			CurrentSaveObject->SavedWolfKillTarget = SRCharacter->GetWolfKillTargetForSave();
+
+			UE_LOG(LogTemp, Log, TEXT("SaveSubsystem::SaveCurrentGame Saved Quest Progress: %d / %d"),
+				CurrentSaveObject->SavedWolfKillCount, CurrentSaveObject->SavedWolfKillTarget);
 		}
 		else
 		{
@@ -228,6 +238,15 @@ bool USenrenbankaSaveSubsystem::ApplyPendingLoadedState()
 				C.FinalAttack, C.FinalCritRate, C.FinalMaxHP);
 
 			SRCharacter->ApplyCombatSaveDataFromSave(C);
+
+			// 恢复任务进度：清剿魔狼
+			UE_LOG(LogTemp, Log, TEXT("SaveSubsystem::ApplyPendingLoadedState Applied Quest Progress: %d / %d"),
+				PendingLoadedSaveObject->SavedWolfKillCount,
+				PendingLoadedSaveObject->SavedWolfKillTarget);
+
+			SRCharacter->ApplyQuestProgressFromSave(
+				PendingLoadedSaveObject->SavedWolfKillCount,
+				PendingLoadedSaveObject->SavedWolfKillTarget);
 		}
 
 		bAppliedSomething = true;
@@ -356,5 +375,49 @@ FString USenrenbankaSaveSubsystem::GetSavedMapName() const
 		return CurrentSaveObject->SavedMapName;
 	}
 	return FString();
+}
+
+void USenrenbankaSaveSubsystem::SetSavedInventoryItems(const TArray<FSenrenbankaInventoryEntry>& InItems)
+{
+	EnsureCurrentSaveObject();
+	if (CurrentSaveObject)
+	{
+		CurrentSaveObject->InventoryItems = InItems;
+		UE_LOG(LogTemp, Log, TEXT("SaveSubsystem::SetSavedInventoryItems Count=%d"), CurrentSaveObject->InventoryItems.Num());
+	}
+}
+
+TArray<FSenrenbankaInventoryEntry> USenrenbankaSaveSubsystem::GetSavedInventoryItems() const
+{
+	if (CurrentSaveObject)
+	{
+		UE_LOG(LogTemp, Log, TEXT("SaveSubsystem::GetSavedInventoryItems Count=%d"), CurrentSaveObject->InventoryItems.Num());
+		return CurrentSaveObject->InventoryItems;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("SaveSubsystem::GetSavedInventoryItems Count=0 (no CurrentSaveObject)"));
+	return TArray<FSenrenbankaInventoryEntry>();
+}
+
+void USenrenbankaSaveSubsystem::SetSavedMoney(int32 InMoney)
+{
+	EnsureCurrentSaveObject();
+	if (CurrentSaveObject)
+	{
+		CurrentSaveObject->SavedMoney = InMoney;
+		UE_LOG(LogTemp, Log, TEXT("SaveSubsystem::SetSavedMoney Money=%d"), InMoney);
+	}
+}
+
+int32 USenrenbankaSaveSubsystem::GetSavedMoney() const
+{
+	if (CurrentSaveObject)
+	{
+		UE_LOG(LogTemp, Log, TEXT("SaveSubsystem::GetSavedMoney Money=%d"), CurrentSaveObject->SavedMoney);
+		return CurrentSaveObject->SavedMoney;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("SaveSubsystem::GetSavedMoney Money=0 (no CurrentSaveObject)"));
+	return 0;
 }
 

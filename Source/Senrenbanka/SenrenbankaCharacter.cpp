@@ -273,3 +273,20 @@ void ASenrenbankaCharacter::ApplyCombatSaveDataFromSave_Implementation(const FSe
 {
 	// 默认无操作，具体恢复逻辑由蓝图子类实现
 }
+
+int32 ASenrenbankaCharacter::GetWolfKillCountForSave_Implementation() const
+{
+	// 默认 0，具体击杀数由蓝图子类覆盖
+	return 0;
+}
+
+int32 ASenrenbankaCharacter::GetWolfKillTargetForSave_Implementation() const
+{
+	// 默认任务目标 100，具体数值由蓝图子类覆盖
+	return 100;
+}
+
+void ASenrenbankaCharacter::ApplyQuestProgressFromSave_Implementation(int32 InWolfKillCount, int32 InWolfKillTarget)
+{
+	// 默认无操作，具体恢复逻辑由蓝图子类实现
+}

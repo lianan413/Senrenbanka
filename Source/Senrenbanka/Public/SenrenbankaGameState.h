@@ -64,6 +64,10 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Time")
 	FOnDailyEnemyRefresh OnDailyEnemyRefresh;
 
+	// 读档应用时间时抑制每日刷怪广播
+	UPROPERTY()
+	bool bSuppressDailyEnemyRefreshBroadcast = false;
+
 	UFUNCTION(BlueprintCallable, Category = "TimeOfDay")
 	ETimeOfDaySegment GetCurrentTimeSegment() const;
 

@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/SaveGame.h"
 #include "SenrenbankaSaveTypes.h"
+#include "SenrenbankaItemTypes.h"
 #include "SenrenbankaSaveGame.generated.h"
 
 UCLASS()
@@ -33,6 +34,21 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
 	FSenrenbankaCombatSaveData CombatData;
+
+	// 正式背包存档
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
+	TArray<FSenrenbankaInventoryEntry> InventoryItems;
+
+	// 正式金钱存档
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
+	int32 SavedMoney = 0;
+
+	// 任务进度：清剿魔狼
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
+	int32 SavedWolfKillCount = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
+	int32 SavedWolfKillTarget = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Save")
 	TMap<FName, float> FloatData;

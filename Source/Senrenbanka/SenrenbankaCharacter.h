@@ -146,5 +146,18 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Save")
 	void ApplyCombatSaveDataFromSave(const FSenrenbankaCombatSaveData& InData);
 	virtual void ApplyCombatSaveDataFromSave_Implementation(const FSenrenbankaCombatSaveData& InData);
+
+	// 任务存档桥接接口：清剿魔狼
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Save")
+	int32 GetWolfKillCountForSave() const;
+	virtual int32 GetWolfKillCountForSave_Implementation() const;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Save")
+	int32 GetWolfKillTargetForSave() const;
+	virtual int32 GetWolfKillTargetForSave_Implementation() const;
+
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category="Save")
+	void ApplyQuestProgressFromSave(int32 InWolfKillCount, int32 InWolfKillTarget);
+	virtual void ApplyQuestProgressFromSave_Implementation(int32 InWolfKillCount, int32 InWolfKillTarget);
 };
 

@@ -136,6 +136,9 @@ void ASenrenbankaGameState::ApplyTimeSaveData(const FSenrenbankaTimeSaveData& In
 	UE_LOG(LogTemp, Log, TEXT("GameState::ApplyTimeSaveData <- DayIndex=%d WeekDayIndex=%d Time=%02d:%02d"),
 		InData.DayIndex, InData.WeekDayIndex, InData.Hour, InData.Minute);
 
+	UE_LOG(LogTemp, Log, TEXT("GameState::ApplyTimeSaveData begin suppress refresh"));
+	bSuppressDailyEnemyRefreshBroadcast = true;
+
 	const ETimeOfDaySegment OldSegment = CurrentSegment;
 
 	DayIndex = InData.DayIndex;
@@ -151,6 +154,9 @@ void ASenrenbankaGameState::ApplyTimeSaveData(const FSenrenbankaTimeSaveData& In
 	{
 		OnTimeSegmentChanged.Broadcast(CurrentSegment);
 	}
+
+	bSuppressDailyEnemyRefreshBroadcast = false;
+	UE_LOG(LogTemp, Log, TEXT("GameState::ApplyTimeSaveData end suppress refresh"));
 }
 
 void ASenrenbankaGameState::AdvanceGameTimeByMinutes(int32 MinutesToAdvance)
@@ -180,8 +186,15 @@ void ASenrenbankaGameState::AdvanceGameTimeByMinutes(int32 MinutesToAdvance)
 		const int32 ThresholdMinutes = Day * 1440 + 240; // 每天 4:00
 		if (ThresholdMinutes > OldTotalMinutes && ThresholdMinutes <= NewTotalMinutes)
 		{
-			UE_LOG(LogTemp, Log, TEXT("GameState::AdvanceGameTimeByMinutes Daily enemy refresh triggered for day %d"), Day);
-			OnDailyEnemyRefresh.Broadcast(Day);
+			if (!bSuppressDailyEnemyRefreshBroadcast)
+			{
+				UE_LOG(LogTemp, Log, TEXT("GameState::AdvanceGameTimeByMinutes Daily enemy refresh triggered for day %d"), Day);
+				OnDailyEnemyRefresh.Broadcast(Day);
+			}
+			else
+			{
+				UE_LOG(LogTemp, Log, TEXT("GameState::AdvanceGameTimeByMinutes Daily enemy refresh suppressed during save-load apply, day %d"), Day);
+			}
 		}
 	}
 
